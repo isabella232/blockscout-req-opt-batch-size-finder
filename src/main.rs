@@ -1,18 +1,13 @@
 use std::thread;
-
 use std::sync::Arc;
 
-use rand::Rng;
-
 use reqwest::blocking::Client;
-
 use serde::Deserialize;
+use serde_json::Value;
 
 use std::time::{Instant};
-
 use std::cmp;
-
-use serde_json::Value;
+use rand::Rng;
 
 struct Timing {
     /// timing in seconds
@@ -37,9 +32,7 @@ fn get_timing_data(obj: &Timing) -> (usize, usize){
         }
     }
 
-    let avg = obj.data.iter().sum::<f64>() as f64 / obj.data.len() as f64;
-
-    println!("min: {}; max: {}; avg: {}", min, max, avg);
+    println!("min: {}; max: {}; avg: {}", min, max, obj.data.iter().sum::<f64>() as f64 / obj.data.len() as f64);
     return (min_index, max_index)
 }
 
@@ -138,7 +131,9 @@ fn get_transactions_by_hash(client:std::sync::Arc<Client>, node_end_point:&str, 
         return Ok(vec!["0x0".into()]);
     }
 
-    Ok(parse_gas_from_json(res.text()?, len))
+    let ans = res.text()?;
+    
+    Ok(parse_gas_from_json(ans, len))
 }
 
 fn from_hex_to_int(num:&str) -> u64 {
@@ -152,9 +147,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>>{
     // "https://rpc.xdaichain.com/"
     // "https://sokol.poa.network/"
     let node_end_point = "https://rpc.xdaichain.com/";
-    // input varibles
+    // total number of generated blocks
     let block_num_total = 40;
-
     // number of runs
     let cnt = 50;
 
@@ -230,7 +224,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>>{
             is_first = false;    
             avg += now.elapsed().as_millis();
         }
-        
         let fin_avg = (avg as f64) / (cnt as f64);
         println!("{};{};{}", block_batch_size, block_concurrency, fin_avg);
         blocks_timing.data.push(fin_avg);
@@ -264,20 +257,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>>{
                 let ref_client = Arc::clone(&client);
     
                 let handle = thread::spawn(move || {
-                        get_transactions_by_hash(Arc::clone(&ref_client), node_end_point, &thread_hashes).unwrap()
+                        get_transactions_by_hash(Arc::clone(&ref_client), node_end_point, &thread_hashes).unwrap_or(vec!["0".into()])
                     });
     
                 handles.push(handle);
             }
     
             for handle in handles {
-                let _res = handle.join().unwrap();
+                let _res = handle.join().unwrap_or(vec!["0".into()]);
             }   
 
             avg += now.elapsed().as_millis();
-
         }
-        
         let fin_avg = (avg as f64) / (cnt as f64);
         
         println!("{};{};{}", tx_batch, tx_concurrency, fin_avg);
@@ -297,9 +288,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>>{
                                                                             block_num_total / (block_num_total - block_batch_indexes.0 + 1) + remainder_0);
     println!("Maximum with block_batch_size={} and block_concurrency={}", block_num_total - block_batch_indexes.1 + 1,
                                                                             block_num_total / (block_num_total - block_batch_indexes.1 + 1) + remainder_1);
-    
-    println!("");
 
+    println!("");
     println!("Get timing data for eth_getTransactionReceipt requests:");
     let tx_batch_indexes = get_timing_data(&hashes_timing);    
 
@@ -312,6 +302,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>>{
     println!("Maximum with tx_batch={} and tx_concurrency={}", num_of_hashes - tx_batch_indexes.1 + 1,
                                                                 num_of_hashes / (num_of_hashes - tx_batch_indexes.1 + 1) + remainder_1);   
 
-
     Ok(())
 }
+

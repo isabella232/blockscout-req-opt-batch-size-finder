@@ -23,7 +23,7 @@ As we can see, when script create more than 8 green threads, the scheduler makes
 * [Here](https://drive.google.com/file/d/1F9Y6dvro36ni9CbtgVeUfUXLxp_HXi9u/view?usp=sharing) and [here](https://drive.google.com/file/d/1WT5pGkpKxdPeeF0MkoTTfAmseNqtQJqe/view?usp=sharing) we can see graphs for https://sokol.poa.network/ node.
 Analyzing them, we can put forward a hypothesis about the best enumeration of variables.
 One of the hypothesis is: *change varible `block_concurrency`, thus, go by divisors of `block_num_total`*.
-* [Here](https://drive.google.com/file/d/1JznLpjqghJHBSovnREypRWaP9HNy_kyg/view?usp=sharing) and [here]() graphs for https://rpc.xdaichain.com/ node. For *eth_getBlockByNumber requests* we can see two other minimums, not only (10, 4). There are (7, 6) and (15, 3).
+* [Here](https://drive.google.com/file/d/1JznLpjqghJHBSovnREypRWaP9HNy_kyg/view?usp=sharing) graph for https://rpc.xdaichain.com/ node. For *eth_getBlockByNumber requests* we can see two other minimums, not only (10, 4). There are (7, 6) and (15, 3).
 
 ## Problems
 * With a large number of requests to the node, sometimes the server gives an error [429 Too Many Requests](https://developer.mozilla.org/ru/docs/Web/HTTP/Status/429). In this case, the script works fine, skipping these requests.
