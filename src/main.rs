@@ -3,17 +3,26 @@ use std::env;
 pub mod query;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // nodes for testing:
-    // "https://core.poa.network/"
-    // "https://rpc.xdaichain.com/"
-    // "https://sokol.poa.network/"
-    let node_end_point = "https://core.poa.network/";
-    // total number of generated blocks
-    let block_num_total = 40;
-    // number of runs
-    let cnt = 1;
+    let args: Vec<String> = env::args().collect();
+    
+    if args.len() < 3 {
+        eprintln!("Not enought arguments");
+        return Ok(());
+    }
     
     env_logger::init();
+    
+    // only with "https://"
+    let node_end_point = args[1].to_string();
+
+    // total number of generated blocks
+    let block_num_total = args[2].parse::<usize>()?;
+
+    // number of runs
+    let cnt = match args.len() {
+        4 => args[3].parse::<u64>()?,
+        _ => 10,
+    };
 
     query::start(node_end_point, block_num_total, cnt)
 }

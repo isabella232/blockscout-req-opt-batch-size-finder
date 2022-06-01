@@ -3,14 +3,38 @@ use reqwest::header::CONTENT_TYPE;
 use serde::Deserialize;
 use reqwest::blocking::Client;
 
+use log::error;
+
 mod extention;
 
 fn json_header() -> HeaderValue {
 	HeaderValue::from_static("application/json; charset=utf-8")
 }
 
+/// eth_blockNumber request
+pub fn get_block_number(client:std::sync::Arc<Client>, node_end_point:String) -> Result<u64, Box<dyn std::error::Error>> {
+    #[allow(dead_code)]
+    #[derive(Deserialize)]
+    struct Resp {
+        jsonrpc: String,
+        result: String,
+        id: String,
+    }
+    
+    let arg = r#"{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":"83"}"#;
+
+    let res = client.post(&node_end_point)
+        .body(arg)
+        .header(CONTENT_TYPE, json_header())
+        .send()?;
+    
+    let json: Resp = res.json()?;
+
+    Ok(extention::from_hex_to_int(json.result.as_str()))
+}
+
 /// eth_getBlockByNumber request
-pub fn get_blocks_by_number(client:std::sync::Arc<Client>, node_end_point:&str, blocks:&[u64]) -> Result<Vec<String>, Box<dyn std::error::Error>> {
+pub fn get_blocks_by_number(client:std::sync::Arc<Client>, node_end_point:String, blocks:&[u64]) -> Result<Vec<String>, Box<dyn std::error::Error>> {
     let mut arg: String = "[".into();
     let len = blocks.len();
 
@@ -23,44 +47,22 @@ pub fn get_blocks_by_number(client:std::sync::Arc<Client>, node_end_point:&str, 
     arg.pop();
     arg += "]";
 
-    let res = client.post(node_end_point)
+    let res = client.post(&node_end_point)
         .body(arg)
         .header(CONTENT_TYPE, json_header())
         .send()?;
 
     if res.status().is_client_error() || res.status().is_server_error()  {
+        error!("Error while eth_getBlockByNumber");
+        error!("{:?}", res.text()?);
         return Ok(vec!["0x0".into()]);
     }
 
     Ok(extention::parse_hashes_from_json(res.text()?, len))
 }
 
-/// eth_blockNumber request
-pub fn get_block_number(client:std::sync::Arc<Client>, node_end_point:&str) -> Result<u64, Box<dyn std::error::Error>> {
-    #[allow(dead_code)]
-    #[derive(Deserialize)]
-    struct Resp {
-        jsonrpc: String,
-        result: String,
-        id: String,
-    }
-    
-    let arg = r#"{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":"83"}"#;
-
-    let res = client.post(node_end_point)
-        .body(arg)
-        .header(CONTENT_TYPE, json_header())
-        .send()?;
-    
-    let json: Resp = res.json()?;
-
-    // println!("{:?}", res.text()?);
-    // Ok(0)
-    Ok(extention::from_hex_to_int(json.result.as_str()))
-}
-
 /// eth_getTransactionReceipt request
-pub fn get_transactions_by_hash(client:std::sync::Arc<Client>, node_end_point:&str, transactions:&[String]) -> Result<Vec<String>, Box<dyn std::error::Error>> {
+pub fn get_transactions_by_hash(client:std::sync::Arc<Client>, node_end_point:String, transactions:&[String]) -> Result<Vec<String>, Box<dyn std::error::Error>> {
     let mut arg: String = "[".into();
     let len = transactions.len();
 
@@ -73,12 +75,14 @@ pub fn get_transactions_by_hash(client:std::sync::Arc<Client>, node_end_point:&s
     arg.pop();
     arg += "]";
 
-    let res = client.post(node_end_point)
+    let res = client.post(&node_end_point)
         .body(arg)
         .header(CONTENT_TYPE, json_header())
         .send()?;
 
     if res.status().is_client_error() || res.status().is_server_error()  {
+        error!("Error while eth_getTransactionReceipt");
+        error!("{:?}", res.text()?);
         return Ok(vec!["0x0".into()]);
     }
 

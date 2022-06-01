@@ -11,12 +11,15 @@ use std::time::{Instant};
 use std::cmp;
 use rand::Rng;
 
-pub fn start(node_end_point:&'static str, block_num_total:usize, cnt:u64) -> Result<(), Box<dyn std::error::Error>> {
+/// entry point
+pub fn start(node_end_point:String, block_num_total:usize, cnt:u64) -> Result<(), Box<dyn std::error::Error>> {
     info!("Connecting to node {}", node_end_point);
 
     let client = Arc::new(Client::new());
 
-    let max_block_number = eth_request::get_block_number(Arc::clone(&client), node_end_point)?;
+    let ref_node = node_end_point.to_string();
+
+    let max_block_number = eth_request::get_block_number(Arc::clone(&client), ref_node)?;
 
     println!("Connection succeed");
     println!("max_block_number: {}", max_block_number);
@@ -66,9 +69,11 @@ pub fn start(node_end_point:&'static str, block_num_total:usize, cnt:u64) -> Res
                 thread_blocks.clone_from_slice(&blocks[left..right]);
     
                 let ref_client = Arc::clone(&client);
+
+                let ref_node = node_end_point.to_string();
     
                 let handle = thread::spawn(move || {
-                        eth_request::get_blocks_by_number(ref_client, node_end_point, &thread_blocks).unwrap_or(vec!["0".into()])
+                        eth_request::get_blocks_by_number(ref_client, ref_node, &thread_blocks).unwrap_or(vec!["0".into()])
                     });
     
                 handles.push(handle);
@@ -116,8 +121,10 @@ pub fn start(node_end_point:&'static str, block_num_total:usize, cnt:u64) -> Res
     
                 let ref_client = Arc::clone(&client);
     
+                let ref_node = node_end_point.to_string();
+
                 let handle = thread::spawn(move || {
-                        eth_request::get_transactions_by_hash(Arc::clone(&ref_client), node_end_point, &thread_hashes).unwrap_or(vec!["0".into()])
+                        eth_request::get_transactions_by_hash(Arc::clone(&ref_client), ref_node, &thread_hashes).unwrap_or(vec!["0".into()])
                     });
     
                 handles.push(handle);
