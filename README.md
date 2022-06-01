@@ -5,8 +5,12 @@ Pass the arguments in command line:
 ```
 RUST_LOG=error cargo run node_end_point block_num_total cnt
 ```
-`cnt` is optional (10 by default).
-`RUST_LOG=error` is optional too.
+Where:  
+- `RUST_LOG=error` is optional (for tracking errors in requests)  
+- `node_end_point` is node for test (e. g. *https://rpc.xdaichain.com/*)  
+- `block_num_total` is number of generated blocks  
+- `cnt` is optional (10 by default)  
+
 ## Tools
 The work used: *rust* (rustc, cargo 1.60.0), python3. Part of the *Cargo.toml*:
 ```
@@ -19,13 +23,14 @@ env_logger = "0.9.0"
 log = "0.4.17"
 ```
 ## Structure of concurrency 
-The picture shows how the block numbers are stored in memory and how concurrency is applied to them
-(for *eth_getBlockByNumber* requests and for *eth_getTransactionReceipt* similarly).
+The picture shows how the block numbers are stored in memory and how concurrency is applied to them:
+
 ![](https://i.imgur.com/qCOH6eB.png)
 
 ## Analysis
+*Images will be soon*  
 Let's take a look at the distribution when iterating `block_batch_size`:
-(HackMD doesn't support big images)
+
 
 * [This](https://drive.google.com/file/d/1SQyoQ2U6RJpGpLjJlGq5rJplcrb8S5f-/view?usp=sharing) and [this](https://drive.google.com/file/d/1nhLULLho_H7XZpWFDIRBe6-KxDlD_rqa/view?usp=sharing) plots shows dependence of time on concurrency. 
 Vertical line is the num of cores (I have 8).
