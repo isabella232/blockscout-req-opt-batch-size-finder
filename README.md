@@ -1,5 +1,12 @@
 # Script to define optimal batch size and concurrency of blocks import
 
+## Run
+Pass the arguments in command line:
+```
+RUST_LOG=error cargo run node_end_point block_num_total cnt
+```
+`cnt` is optional (10 by default).
+`RUST_LOG=error` is optional too.
 ## Tools
 The work used: *rust* (rustc, cargo 1.60.0), python3. Part of the *Cargo.toml*:
 ```
@@ -8,9 +15,12 @@ rand = "0.8.4"
 reqwest = { version = "0.11", features = ["json", "blocking"] }
 serde = {version = "1.0.137", features = ["derive"] }
 serde_json = "1.0.81"
+env_logger = "0.9.0"
+log = "0.4.17"
 ```
 ## Structure of concurrency 
-The picture shows how the block numbers are stored in memory and how concurrency is applied to them (for *eth_getBlockByNumber* requests and for *eth_getTransactionReceipt* similarly).
+The picture shows how the block numbers are stored in memory and how concurrency is applied to them
+(for *eth_getBlockByNumber* requests and for *eth_getTransactionReceipt* similarly).
 ![](https://i.imgur.com/qCOH6eB.png)
 
 ## Analysis
@@ -28,6 +38,9 @@ One of the hypothesis is: *change varible `block_concurrency`, thus, go by divis
 ## Problems
 * With a large number of requests to the node, sometimes the server gives an error [429 Too Many Requests](https://developer.mozilla.org/ru/docs/Web/HTTP/Status/429). In this case, the script works fine, skipping these requests.
 * When the script is running for a long time (with `cnt`>=40) sometimes an error is issued (*TimedOut*). Now I'm trying to catch this error.
+## Results
+*Big table with images for different `node_end_point` will be here soon...*
+
 ## Сonclusion
 Input variables are set in the script itself, but it can be easily fixed.
 Among them: `node_end_point`, `block_num_total`, `cnt` (number of runs), `block_range`.
