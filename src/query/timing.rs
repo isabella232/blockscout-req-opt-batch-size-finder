@@ -22,5 +22,5 @@ pub fn get_timing_data(obj: &Timing) -> (usize, usize) {
     }
 
     println!("min: {}; max: {}; avg: {}", min, max, obj.data.iter().sum::<f64>() as f64 / obj.data.len() as f64);
-    return (min_index, max_index)
+    (min_index, max_index)
 }

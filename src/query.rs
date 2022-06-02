@@ -38,7 +38,6 @@ pub fn start(node_end_point:String, block_num_total:usize, cnt:u64) -> Result<()
     println!("Number of runs: {}", cnt);
 
     let mut ans_hash = vec![];
-    let num_of_hashes;
     let mut is_first = true;
 
     let mut blocks_timing = timing::Timing {data: Vec::new()};
@@ -73,14 +72,14 @@ pub fn start(node_end_point:String, block_num_total:usize, cnt:u64) -> Result<()
                 let ref_node = node_end_point.to_string();
     
                 let handle = thread::spawn(move || {
-                        eth_request::get_blocks_by_number(ref_client, ref_node, &thread_blocks).unwrap_or(vec!["0".into()])
+                        eth_request::get_blocks_by_number(ref_client, ref_node, &thread_blocks).unwrap_or_else(|_| vec!["0".into()])
                     });
     
                 handles.push(handle);
             }
     
             for handle in handles {
-                let res = handle.join().unwrap_or(vec!["0".into()]);
+                let res = handle.join().unwrap_or_else(|_| vec!["0".into()]);
                 
                 if is_first {
                     ans_hash.push(res);
@@ -98,7 +97,7 @@ pub fn start(node_end_point:String, block_num_total:usize, cnt:u64) -> Result<()
     println!("tx_batch;tx_concurrency;time");
 
     let tx_hashes = &ans_hash[0];
-    num_of_hashes = tx_hashes.len();
+    let num_of_hashes = tx_hashes.len();
 
     for tx_batch in (1..num_of_hashes+1).rev() {
         let tx_concurrency = match num_of_hashes % tx_batch {
@@ -124,14 +123,14 @@ pub fn start(node_end_point:String, block_num_total:usize, cnt:u64) -> Result<()
                 let ref_node = node_end_point.to_string();
 
                 let handle = thread::spawn(move || {
-                        eth_request::get_transactions_by_hash(Arc::clone(&ref_client), ref_node, &thread_hashes).unwrap_or(vec!["0".into()])
+                        eth_request::get_transactions_by_hash(Arc::clone(&ref_client), ref_node, &thread_hashes).unwrap_or_else(|_| vec!["0".into()])
                     });
     
                 handles.push(handle);
             }
     
             for handle in handles {
-                let _res = handle.join().unwrap_or(vec!["0".into()]);
+                let _res = handle.join().unwrap_or_else(|_| vec!["0".into()]);
             }   
 
             avg += now.elapsed().as_millis();
@@ -156,7 +155,7 @@ pub fn start(node_end_point:String, block_num_total:usize, cnt:u64) -> Result<()
     println!("Maximum with block_batch_size={} and block_concurrency={}", block_num_total - block_batch_indexes.1 + 1,
                                                                             block_num_total / (block_num_total - block_batch_indexes.1 + 1) + remainder_1);
 
-    println!("");
+    println!();
     println!("Get timing data for eth_getTransactionReceipt requests:");
     let tx_batch_indexes = timing::get_timing_data(&hashes_timing);    
 
