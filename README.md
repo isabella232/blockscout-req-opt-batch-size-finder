@@ -6,10 +6,10 @@ Pass the arguments in command line:
 RUST_LOG=info cargo run node_end_point block_num_total cnt
 ```
 Where:  
-- `RUST_LOG=info` is optional (for tracking errors in requests)  
+- `RUST_LOG=info` is for tracking errors in requests (optional)  
 - `node_end_point` is node for test (e. g. *https://rpc.xdaichain.com/*)  
 - `block_num_total` is number of generated blocks  
-- `cnt` is optional (10 by default)  
+- `cnt` is number of runs (optional, 10 by default)  
 
 ## Tools
 The work used: *rust* (rustc, cargo 1.60.0), python3. Part of the *Cargo.toml*:
