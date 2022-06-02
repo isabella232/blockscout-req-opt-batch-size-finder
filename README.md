@@ -3,10 +3,10 @@
 ## Run
 Pass the arguments in command line:
 ```
-RUST_LOG=error cargo run node_end_point block_num_total cnt
+RUST_LOG=info cargo run node_end_point block_num_total cnt
 ```
 Where:  
-- `RUST_LOG=error` is optional (for tracking errors in requests)  
+- `RUST_LOG=info` is optional (for tracking errors in requests)  
 - `node_end_point` is node for test (e. g. *https://rpc.xdaichain.com/*)  
 - `block_num_total` is number of generated blocks  
 - `cnt` is optional (10 by default)  

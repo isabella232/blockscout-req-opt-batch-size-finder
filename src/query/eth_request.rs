@@ -3,7 +3,7 @@ use reqwest::header::CONTENT_TYPE;
 use serde::Deserialize;
 use reqwest::blocking::Client;
 
-use log::error;
+use log::{info};
 
 mod extention;
 
@@ -53,8 +53,8 @@ pub fn get_blocks_by_number(client:std::sync::Arc<Client>, node_end_point:String
         .send()?;
 
     if res.status().is_client_error() || res.status().is_server_error()  {
-        error!("Error while eth_getBlockByNumber");
-        error!("{:?}", res.text()?);
+        info!("Error while eth_getBlockByNumber");
+        info!("{:?}", res.text()?);
         return Ok(vec!["0x0".into()]);
     }
 
@@ -81,8 +81,8 @@ pub fn get_transactions_by_hash(client:std::sync::Arc<Client>, node_end_point:St
         .send()?;
 
     if res.status().is_client_error() || res.status().is_server_error()  {
-        error!("Error while eth_getTransactionReceipt");
-        error!("{:?}", res.text()?);
+        info!("Error while eth_getTransactionReceipt");
+        info!("{:?}", res.text()?);
         return Ok(vec!["0x0".into()]);
     }
 
