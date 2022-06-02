@@ -28,18 +28,24 @@ The picture shows how the block numbers are stored in memory and how concurrency
 ![](https://i.imgur.com/qCOH6eB.png)
 
 ## Analysis
-*Images will be soon*  
 Let's take a look at the distribution when iterating `block_batch_size`:
 
-
-* [This](https://drive.google.com/file/d/1SQyoQ2U6RJpGpLjJlGq5rJplcrb8S5f-/view?usp=sharing) and [this](https://drive.google.com/file/d/1nhLULLho_H7XZpWFDIRBe6-KxDlD_rqa/view?usp=sharing) plots shows dependence of time on concurrency. 
-Vertical line is the num of cores (I have 8).
-As we can see, when script create more than 8 green threads, the scheduler makes a big contribution to performance. It also applies to *eth_getTransactionReceipt* request ([plot](https://drive.google.com/file/d/1sxhphiO1PMvkc8ENhT0iizDO798ixc7r/view?usp=sharing))
-* [Here](https://drive.google.com/file/d/1F9Y6dvro36ni9CbtgVeUfUXLxp_HXi9u/view?usp=sharing) and [here](https://drive.google.com/file/d/1WT5pGkpKxdPeeF0MkoTTfAmseNqtQJqe/view?usp=sharing) we can see graphs for https://sokol.poa.network/ node.
-Analyzing them, we can put forward a hypothesis about the best enumeration of variables.
+* These plots shows dependence of time on concurrency. Vertical line is the num of cores (I have 8).
+![1](https://user-images.githubusercontent.com/70902141/171616230-9d7a71d2-4e7d-4aec-a914-0f47ebb9bce9.png)
+![2](https://user-images.githubusercontent.com/70902141/171616234-e6124ca4-7e7c-466e-adfa-1c447f3d8ed3.png)
+As we can see, when script create more than 8 green threads, the scheduler makes a big contribution to performance.  
+It also applies to *eth_getTransactionReceipt* request:  
+![image](https://user-images.githubusercontent.com/70902141/171616633-824e80ec-f040-4b30-b00a-c0e94dfe29a7.png)
+* These graphs plotted for https://sokol.poa.network/ node.
+![4](https://user-images.githubusercontent.com/70902141/171633675-5038c5e4-efe7-45d7-a97c-ea5e528e04c4.png)
+![image](https://user-images.githubusercontent.com/70902141/171634703-d572b995-66ed-4b29-adb8-bd6ddeb6e4cc.png)
+Analyzing them, we can put forward a hypothesis about the best enumeration of variables.  
 One of the hypothesis is: *change varible `block_concurrency`, thus, go by divisors of `block_num_total`*.
-* [Here](https://drive.google.com/file/d/1JznLpjqghJHBSovnREypRWaP9HNy_kyg/view?usp=sharing) graph for https://rpc.xdaichain.com/ node. For *eth_getBlockByNumber requests* we can see two other minimums, not only (10, 4). There are (7, 6) and (15, 3).
+* Here graph for https://rpc.xdaichain.com/ node.
+![image](https://user-images.githubusercontent.com/70902141/171635106-ccf2ead1-10ff-40fd-800e-aa50df5d18c3.png)
+For *eth_getBlockByNumber requests* we can see two other minimums, not only (10, 4). There are (7, 6) and (15, 3).
 
+  
 ## Problems
 * With a large number of requests to the node, sometimes the server gives an error [429 Too Many Requests](https://developer.mozilla.org/ru/docs/Web/HTTP/Status/429). In this case, the script works fine, skipping these requests.
 * When the script is running for a long time (with `cnt`>=40) sometimes an error is issued (*TimedOut*). Now I'm trying to catch this error.
