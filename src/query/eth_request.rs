@@ -1,14 +1,20 @@
-use reqwest::header::HeaderValue;
-use reqwest::header::CONTENT_TYPE;
+use reqwest::header::{HeaderValue, HeaderMap, CONTENT_TYPE, USER_AGENT};
 use serde::Deserialize;
 use reqwest::blocking::Client;
 
-use log::{info};
+use log::{error};
 
 mod extention;
 
-fn json_header() -> HeaderValue {
-	HeaderValue::from_static("application/json; charset=utf-8")
+// fn json_header() -> HeaderValue {
+// 	HeaderValue::from_static("application/json; charset=utf-8")
+// }
+
+fn construct_headers() -> HeaderMap {
+    let mut headers = HeaderMap::new();
+    headers.insert(USER_AGENT, HeaderValue::from_static("test"));
+    headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json; charset=utf-8"));
+    headers
 }
 
 /// eth_blockNumber request
@@ -25,7 +31,7 @@ pub fn get_block_number(client:std::sync::Arc<Client>, node_end_point:String) ->
 
     let res = client.post(&node_end_point)
         .body(arg)
-        .header(CONTENT_TYPE, json_header())
+        .headers(construct_headers())
         .send()?;
     
     let json: Resp = res.json()?;
@@ -49,12 +55,12 @@ pub fn get_blocks_by_number(client:std::sync::Arc<Client>, node_end_point:String
 
     let res = client.post(&node_end_point)
         .body(arg)
-        .header(CONTENT_TYPE, json_header())
+        .headers(construct_headers())
         .send()?;
 
     if res.status().is_client_error() || res.status().is_server_error()  {
-        info!("Error while eth_getBlockByNumber");
-        info!("{:?}", res.text()?);
+        error!("Error while eth_getBlockByNumber");
+        error!("{:?}", res.text()?);
         return Ok(vec!["0x0".into()]);
     }
 
@@ -77,12 +83,12 @@ pub fn get_transactions_by_hash(client:std::sync::Arc<Client>, node_end_point:St
 
     let res = client.post(&node_end_point)
         .body(arg)
-        .header(CONTENT_TYPE, json_header())
+        .headers(construct_headers())
         .send()?;
 
     if res.status().is_client_error() || res.status().is_server_error()  {
-        info!("Error while eth_getTransactionReceipt");
-        info!("{:?}", res.text()?);
+        error!("Error while eth_getTransactionReceipt");
+        error!("{:?}", res.text()?);
         return Ok(vec!["0x0".into()]);
     }
 
