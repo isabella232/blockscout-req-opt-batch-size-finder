@@ -33,21 +33,17 @@ pub fn from_hex_to_int(num:&str) -> u64 {
     u64::from_str_radix(without_prefix, 16).unwrap()
 }
 
-pub fn error_handler(err: &serde_json::Error) -> &serde_json::Error {
+pub fn error_handler(err: &serde_json::Error) {
     if err.is_io() {
         error!("I/O stream error");
-        return err;
     } else if err.is_eof() {
         error!("EOF error");
-        return err;
     } else if err.is_syntax() {
+        // with a large number of requests syntax error apears
         error!("syntax error: {}", err);
-        return err;
     } else if err.is_data() {
         error!("semantically incorrect dara: {}", err);
-        return err;
     } else {
         error!("undefined error: {}", err);
-        return err;
     }
 }

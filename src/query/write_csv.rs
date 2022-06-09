@@ -4,7 +4,7 @@ use csv::Writer;
 
 const HTTPS: &str = "https://";
 
-pub fn create(node_name:String, stage:u64) -> Result<Writer<std::fs::File>, Box<dyn std::error::Error>> {
+pub fn create(node_name:String, stage:u64) -> Result<Writer<std::fs::File>, anyhow::Error> {
     let node_https: &str = &node_name[HTTPS.len()..node_name.len()];
     let node_https = node_https.replace('/', "");
 

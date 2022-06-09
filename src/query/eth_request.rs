@@ -34,7 +34,8 @@ pub fn get_block_number(client: std::sync::Arc<Client>, node_end_point: String) 
         .send();
 
     if let Err(e) = res {
-        return Err(error_handler(anyhow!(e)));
+        error_handler(anyhow!(e));
+        return Err(anyhow!("error with sending request"))
     }
 
     let json: Resp = res.unwrap().json()?;
@@ -62,13 +63,15 @@ pub fn get_blocks_by_number(client: std::sync::Arc<Client>, node_end_point: Stri
         .send();
 
     if let Err(e) = res {
-        return Err(error_handler(anyhow!(e)));
+        error_handler(anyhow!(e));
+        return Err(anyhow!("error with sending request"));
     }
 
     let res = extention::parse_hashes_from_json(res.unwrap().text()?, len);
 
     if let Err(e) = res {
-        return Err(error_handler(anyhow!(e)));
+        error_handler(anyhow!(e));
+        return Err(anyhow!("error with pawsing json"));
     }
 
     Ok(res.unwrap())
@@ -94,7 +97,8 @@ pub fn get_transactions_by_hash(client: std::sync::Arc<Client>, node_end_point: 
         .send();
 
     if let Err(e) = res {
-        return Err(error_handler(anyhow!(e)));
+        error_handler(anyhow!(e));
+        return Err(anyhow!("error with sending request"));
     }
 
     let ans = res.unwrap().text()?;
@@ -102,17 +106,17 @@ pub fn get_transactions_by_hash(client: std::sync::Arc<Client>, node_end_point: 
     let res = extention::parse_gas_from_json(ans, len);
 
     if let Err(e) = res {
-        return Err(error_handler(anyhow!(e)));
+        error_handler(anyhow!(e));
+        return Err(anyhow!("error with parsing json"));
     }
 
     Ok(res.unwrap())
 }
 
-fn error_handler(err: anyhow::Error) -> anyhow::Error {
+fn error_handler(err: anyhow::Error) {
     if let Some(e) = err.downcast_ref::<reqwest::Error>() {
         if e.is_redirect() {
             error!("server redirecting too many times or making loop");
-            return err;
         } else if e.is_status() {
             let status = e.status().unwrap();
     
@@ -123,19 +127,14 @@ fn error_handler(err: anyhow::Error) -> anyhow::Error {
             } else if status.is_redirection() {
                 error!("redirect: {}", status);
             }
-            return err;
         } else if e.is_timeout() {
             error!("timeout: {}", e);
-            return err;
         } else {
             error!("undefined error: {}", e);
-            return err;
         }
     } else if let Some(e) = err.downcast_ref::<serde_json::Error>() {
         extention::error_handler(e);
-        return err;
     } else {
         error!("can't downcast error: {}", err);
-        return err;
     }
 }

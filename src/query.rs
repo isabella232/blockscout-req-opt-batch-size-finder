@@ -9,21 +9,18 @@ use std::thread;
 use std::time::{Instant};
 use std::cmp;
 use rand::Rng;
-use log::info;
+use log::{info, error};
 
 /// entry point
-pub fn start(node_end_point:String, block_num_total:usize, cnt:u64) -> Result<(), Box<dyn std::error::Error>> {
+pub fn start(node_end_point:String, block_num_total:usize, cnt:u64) -> Result<(), anyhow::Error> {
     info!("Connecting to node {}", node_end_point);
 
     let client = Arc::new(Client::new());
-
     let ref_node = node_end_point.to_string();
-
     let max_block_number = eth_request::get_block_number(Arc::clone(&client), ref_node)?;
 
     info!("Connection succeed");
     info!("max_block_number: {}", max_block_number);
-
     // default value (optional)
     let block_range = max_block_number;
     info!("block_range: {}", block_range);
@@ -31,10 +28,8 @@ pub fn start(node_end_point:String, block_num_total:usize, cnt:u64) -> Result<()
     // generating random block numbers
     let mut rng = rand::thread_rng();
     let blocks: Vec<u64> = (0..block_num_total).map(|_| rng.gen_range(0..block_range)).collect();
-
     info!("block_num_total: {}", block_num_total);
     info!("List of generated random blocks:\n{:?}", blocks);
-
     info!("Number of runs: {}", cnt);
 
     let mut blocks_timing = timing::Timing {data: Vec::new()};
@@ -69,18 +64,24 @@ pub fn start(node_end_point:String, block_num_total:usize, cnt:u64) -> Result<()
                 thread_blocks.clone_from_slice(&blocks[left..right]);
 
                 let ref_client = Arc::clone(&client);
-
                 let ref_node = node_end_point.to_string();
 
                 let handle = thread::spawn(move || {
-                        eth_request::get_blocks_by_number(ref_client, ref_node, &thread_blocks).unwrap_or_else(|_| vec!["0".into()])
+                        eth_request::get_blocks_by_number(ref_client, ref_node, &thread_blocks).unwrap_or_else(|_| vec!["0x0".into()])
                     });
 
                 handles.push(handle);
             }
 
             for handle in handles {
-                let res = handle.join().unwrap_or_else(|_| vec!["0".into()]);
+                let res = handle.join();
+
+                if let Err(e) = res {
+                    error!("error while threading: {:?}", e);
+                    continue;
+                }
+
+                let res = res.unwrap();
 
                 if is_first {
                     ans_hash.push(res);
@@ -90,13 +91,13 @@ pub fn start(node_end_point:String, block_num_total:usize, cnt:u64) -> Result<()
             avg += now.elapsed().as_millis();
         }
         let fin_avg = (avg as f64) / (cnt as f64);
+
         info!("{};{};{}", block_batch_size, block_concurrency, fin_avg);
         blocks_timing.data.push(fin_avg);
-
         writer.write_record(&[format!("{block_batch_size}"), format!("{block_concurrency}"), format!("{fin_avg}")])?;
     }
-    info!("Get timing data for eth_getBlockByNumber requests:");
 
+    info!("Get timing data for eth_getBlockByNumber requests:");
     let block_batch_indexes = timing::get_timing_data(&blocks_timing);
 
     let block_batch_min = block_num_total - block_batch_indexes.0 + 1;
@@ -124,7 +125,11 @@ pub fn start(node_end_point:String, block_num_total:usize, cnt:u64) -> Result<()
     let tx_hashes = &ans_hash[0];
     let num_of_hashes = tx_hashes.len();
 
-    for tx_batch in (1..num_of_hashes+1).rev() {
+    // with smaller bound for tx_batch
+    // every node throw *429 Too Many Requests*
+    let tx_batch_min = 6;
+
+    for tx_batch in (tx_batch_min..num_of_hashes+1).rev() {
         let tx_concurrency = match num_of_hashes % tx_batch {
             0 => num_of_hashes / tx_batch,
             _ => num_of_hashes / tx_batch + 1
@@ -133,7 +138,6 @@ pub fn start(node_end_point:String, block_num_total:usize, cnt:u64) -> Result<()
         let mut avg = 0;
         for _ in 0..cnt {
             let now = Instant::now();
-
             let mut handles = vec![];
 
             for thread_number in 0..tx_concurrency {
@@ -144,18 +148,22 @@ pub fn start(node_end_point:String, block_num_total:usize, cnt:u64) -> Result<()
                 thread_hashes.clone_from_slice(&tx_hashes[left..right]);
 
                 let ref_client = Arc::clone(&client);
-
                 let ref_node = node_end_point.to_string();
 
                 let handle = thread::spawn(move || {
-                        eth_request::get_transactions_by_hash(Arc::clone(&ref_client), ref_node, &thread_hashes).unwrap_or_else(|_| vec!["0".into()])
+                        eth_request::get_transactions_by_hash(Arc::clone(&ref_client), ref_node, &thread_hashes).unwrap_or_else(|_| vec!["0x0".into()])
                     });
 
                 handles.push(handle);
             }
 
             for handle in handles {
-                let _res = handle.join().unwrap_or_else(|_| vec!["0".into()]);
+                let res = handle.join();
+
+                if let Err(e) = res {
+                    error!("error while threading: {:?}", e);
+                    continue;
+                }
             }
 
             avg += now.elapsed().as_millis();
@@ -164,12 +172,10 @@ pub fn start(node_end_point:String, block_num_total:usize, cnt:u64) -> Result<()
 
         info!("{};{};{}", tx_batch, tx_concurrency, fin_avg);
         hashes_timing.data.push(fin_avg);
-
         writer.write_record(&[format!("{tx_batch}"), format!("{tx_concurrency}"), format!("{fin_avg}")])?;
     }
 
     info!("Get timing data for eth_getTransactionReceipt requests:");
-
     let tx_batch_indexes = timing::get_timing_data(&hashes_timing);
 
     let tx_batch_min = num_of_hashes - tx_batch_indexes.0 + 1;

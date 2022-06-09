@@ -2,7 +2,7 @@ use std::env;
 
 pub mod query;
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() -> Result<(), anyhow::Error> {
     let args: Vec<String> = env::args().collect();
     
     if args.len() < 3 {
