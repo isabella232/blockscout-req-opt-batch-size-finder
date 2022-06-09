@@ -21,6 +21,8 @@ serde = {version = "1.0.137", features = ["derive"] }
 serde_json = "1.0.81"
 env_logger = "0.9.0"
 log = "0.4.17"
+csv = "1.1.6"
+anyhow = "1.0.57"
 ```
 ## Structure of concurrency 
 The picture shows how the block numbers are stored in memory and how concurrency is applied to them:
