@@ -12,7 +12,7 @@ use rand::Rng;
 use log::{info, error};
 
 /// entry point
-pub fn start(node_end_point:String, block_num_total:usize, cnt:u64) -> Result<(), anyhow::Error> {
+pub fn start(node_end_point:String, block_num_total:usize, cnt:u64) -> Result<(), reqwest::Error> {
     info!("Connecting to node {}", node_end_point);
 
     let client = Arc::new(Client::new());
@@ -41,7 +41,7 @@ pub fn start(node_end_point:String, block_num_total:usize, cnt:u64) -> Result<()
     info!("eth_getBlockByNubmer rquest in progress.");
     info!("block_batch_size;block_concurrency;time");
 
-    let mut writer = write_csv::create(node_end_point.to_string(), 0)?;
+    let mut writer = write_csv::create(node_end_point.to_string(), 0).unwrap();
 
     let cumulative_time = Instant::now();
 
@@ -94,7 +94,7 @@ pub fn start(node_end_point:String, block_num_total:usize, cnt:u64) -> Result<()
 
         info!("{};{};{}", block_batch_size, block_concurrency, fin_avg);
         blocks_timing.data.push(fin_avg);
-        writer.write_record(&[format!("{block_batch_size}"), format!("{block_concurrency}"), format!("{fin_avg}")])?;
+        writer.write_record(&[format!("{block_batch_size}"), format!("{block_concurrency}"), format!("{fin_avg}")]).unwrap();
     }
 
     info!("Get timing data for eth_getBlockByNumber requests:");
@@ -113,14 +113,14 @@ pub fn start(node_end_point:String, block_num_total:usize, cnt:u64) -> Result<()
     let time_min = &blocks_timing.data[block_num_total - block_batch_min];
     let time_max = &blocks_timing.data[block_num_total - block_batch_max];
 
-    writer.write_record(&[format!("{block_batch_max}"), format!("{block_concurrency_max}"), format!("{time_max}")])?;
-    writer.write_record(&[format!("{block_batch_min}"), format!("{block_concurrency_min}"), format!("{time_min}")])?;
-    writer.flush()?;
+    writer.write_record(&[format!("{block_batch_max}"), format!("{block_concurrency_max}"), format!("{time_max}")]).unwrap();
+    writer.write_record(&[format!("{block_batch_min}"), format!("{block_concurrency_min}"), format!("{time_min}")]).unwrap();
+    writer.flush().unwrap();
 
     info!("eth_getTransactionReceipt rquest in progress.");
     info!("tx_batch;tx_concurrency;time");
 
-    writer = write_csv::create(node_end_point.to_string(), 1)?;
+    writer = write_csv::create(node_end_point.to_string(), 1).unwrap();
 
     let tx_hashes = &ans_hash[0];
     let num_of_hashes = tx_hashes.len();
@@ -172,7 +172,7 @@ pub fn start(node_end_point:String, block_num_total:usize, cnt:u64) -> Result<()
 
         info!("{};{};{}", tx_batch, tx_concurrency, fin_avg);
         hashes_timing.data.push(fin_avg);
-        writer.write_record(&[format!("{tx_batch}"), format!("{tx_concurrency}"), format!("{fin_avg}")])?;
+        writer.write_record(&[format!("{tx_batch}"), format!("{tx_concurrency}"), format!("{fin_avg}")]).unwrap();
     }
 
     info!("Get timing data for eth_getTransactionReceipt requests:");
@@ -191,9 +191,9 @@ pub fn start(node_end_point:String, block_num_total:usize, cnt:u64) -> Result<()
     let time_min = &hashes_timing.data[num_of_hashes - tx_batch_min];
     let time_max = &hashes_timing.data[num_of_hashes - tx_batch_max];
 
-    writer.write_record(&[format!("{tx_batch_max}"), format!("{tx_concurrency_max}"), format!("{time_max}")])?;
-    writer.write_record(&[format!("{tx_batch_min}"), format!("{tx_concurrency_min}"), format!("{time_min}")])?;
-    writer.flush()?;
+    writer.write_record(&[format!("{tx_batch_max}"), format!("{tx_concurrency_max}"), format!("{time_max}")]).unwrap();
+    writer.write_record(&[format!("{tx_batch_min}"), format!("{tx_concurrency_min}"), format!("{time_min}")]).unwrap();
+    writer.flush().unwrap();
 
     info!("Cumulative time for:\nblock_num_total={}\nnum_of_hashes={}\nnumber_of_runs={}\n{} seconds",
           block_num_total, num_of_hashes, cnt, cumulative_time.elapsed().as_secs());
