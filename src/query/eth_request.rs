@@ -1,5 +1,6 @@
 use reqwest::header::{HeaderValue, HeaderMap, CONTENT_TYPE, USER_AGENT};
 use reqwest::blocking::Client;
+use reqwest::StatusCode;
 
 use log::{error};
 
@@ -8,25 +9,26 @@ mod extentions;
 
 fn construct_headers() -> HeaderMap {
     let mut headers = HeaderMap::new();
-    headers.insert(USER_AGENT, HeaderValue::from_static("test optimal batch size"));
+    headers.insert(USER_AGENT, HeaderValue::from_static("test optimal batch size1"));
     headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json; charset=utf-8"));
     headers
 }
 
 /// eth_blockNumber request
-pub fn get_block_number(client: std::sync::Arc<Client>, node_end_point: String) -> Result<u64, reqwest::Error> {
+pub fn get_block_number(client: std::sync::Arc<Client>, node_end_point: &String) -> Result<u64, reqwest::Error> {
     let arg = r#"{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":"83"}"#;
 
-    let res = client.post(&node_end_point)
+    let res = client.post(node_end_point)
         .body(arg)
         .headers(construct_headers())
-        .send();
+        .send()?;
 
-    if let Err(e) = res {
-        return Err(error_handler(e));
+    if !check_status(&res) {
+        // TODO: how to throw error more correctly?
+        return Ok(0);
     }
 
-    let json: Result<extentions::Response, reqwest::Error> = res.unwrap().json();
+    let json: Result<extentions::Response, reqwest::Error> = res.json();    
 
     if let Err(e) = json {
         Err(error_handler(e))
@@ -61,22 +63,17 @@ pub fn get_blocks_by_number(client: std::sync::Arc<Client>, node_end_point: Stri
     let res = client.post(&node_end_point)
         .body(arg)
         .headers(construct_headers())
-        .send();
+        .send()?;
 
-    if let Err(e) = res {
-        return Err(error_handler(e));
+    if !check_status(&res) {
+        return Ok(vec![]);
     }
 
-    let jsons: Result<Vec<extentions::Response>, reqwest::Error> = res.unwrap().json();
-    // let jsons: Result<std::string::String, reqwest::Error> = res.unwrap().text();
-
-    // println!("{:?}", jsons);
+    let jsons: Result<Vec<extentions::Response>, reqwest::Error> = res.json();
 
     if let Err(e) = jsons {
         return Err(error_handler(e));
     }
-    
-    // Ok(vec![])
 
     Ok(jsons.unwrap()
             .into_iter()
@@ -100,28 +97,22 @@ pub fn get_transactions_by_hash(client: std::sync::Arc<Client>, node_end_point: 
     let res = client.post(&node_end_point)
         .body(arg)
         .headers(construct_headers())
-        .send();
+        .send()?;
 
-    if let Err(e) = res {
-        return Err(error_handler(e));
+    if !check_status(&res) {
+        return Ok(vec![]);
     }
 
-    let jsons: Result<Vec<extentions::Response>, reqwest::Error> = res.unwrap().json();
-    // let jsons: Result<std::string::String, reqwest::Error> = res.unwrap().text();
-
-    // println!("{:?}", jsons);
+    let jsons: Result<Vec<extentions::Response>, reqwest::Error> = res.json();
 
     if let Err(e) = jsons {
         return Err(error_handler(e));
     }
 
-
     Ok(jsons.unwrap()
             .into_iter()
             .map(extentions::get_gas)
             .collect())
-
-    // Ok(vec![])
 }
 
 fn error_handler(e: reqwest::Error) -> reqwest::Error {
@@ -148,5 +139,12 @@ fn error_handler(e: reqwest::Error) -> reqwest::Error {
     } else {
         error!("undefined error: {}", e);
         e
+    }
+}
+
+fn check_status(resp: &reqwest::blocking::Response) -> bool {
+    match resp.status() {
+        StatusCode::OK => true,
+        s => {error!("Error sending request. Status code: {}", s); false}
     }
 }
