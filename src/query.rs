@@ -1,6 +1,5 @@
 mod eth_request;
 mod timing;
-mod write_csv;
 
 use std::sync::Arc;
 use reqwest::blocking::Client;
@@ -13,14 +12,16 @@ use log::{info, error};
 
 /// entry point
 pub fn start(node_end_point:String, block_num_total:usize, cnt:u64) -> Result<(), reqwest::Error> {
+    let node_end_point = get_good_url(&node_end_point);
+
     info!("Connecting to node {}", node_end_point);
 
     let client = Arc::new(Client::new());
-    let ref_node = node_end_point.to_string();
-    let max_block_number = eth_request::get_block_number(Arc::clone(&client), ref_node)?;
+    let max_block_number = eth_request::get_block_number(Arc::clone(&client), &node_end_point)?;
 
     info!("Connection succeed");
     info!("max_block_number: {}", max_block_number);
+
     // default value (optional)
     let block_range = max_block_number;
     info!("block_range: {}", block_range);
@@ -32,28 +33,30 @@ pub fn start(node_end_point:String, block_num_total:usize, cnt:u64) -> Result<()
     info!("List of generated random blocks:\n{:?}", blocks);
     info!("Number of runs: {}", cnt);
 
-    let mut blocks_timing = timing::Timing {data: Vec::new()};
-    let mut hashes_timing = timing::Timing {data: Vec::new()};
-
     let mut ans_hash = vec![];
     let mut is_first = true;
 
     info!("eth_getBlockByNubmer rquest in progress.");
     info!("block_batch_size;block_concurrency;time");
 
-    let mut writer = write_csv::create(node_end_point.to_string(), 0).unwrap();
-
     let cumulative_time = Instant::now();
+
+    let mut timer = timing::Timing {node_end_point: node_end_point.to_string(), ..Default::default()};
+
+    if let Err(e) = timer.init_write(0) {
+        error!("error while creating csv. check your directory: {}", e);
+        return Ok(());
+    }
 
     for block_batch_size in (1..block_num_total+1).rev() {
         let block_concurrency = match block_num_total % block_batch_size {
             0 => block_num_total / block_batch_size,
             _ => block_num_total / block_batch_size + 1
         };
-        let mut avg = 0;
+        timer.init();
 
         for _ in 0..cnt {
-            let now = Instant::now();
+            timer.start();
             let mut handles = vec![];
 
             for thread_number in 0..block_concurrency {
@@ -67,14 +70,14 @@ pub fn start(node_end_point:String, block_num_total:usize, cnt:u64) -> Result<()
                 let ref_node = node_end_point.to_string();
 
                 let handle = thread::spawn(move || {
-                        eth_request::get_blocks_by_number(ref_client, ref_node, &thread_blocks).unwrap_or_else(|_| vec!["0x0".into()])
+                        eth_request::get_blocks_by_number(ref_client, ref_node, &thread_blocks)
                     });
 
                 handles.push(handle);
             }
 
             for handle in handles {
-                let res = handle.join();
+                let res = handle.join().unwrap();
 
                 if let Err(e) = res {
                     error!("error while threading: {:?}", e);
@@ -88,46 +91,33 @@ pub fn start(node_end_point:String, block_num_total:usize, cnt:u64) -> Result<()
                 }
             }
             is_first = false;
-            avg += now.elapsed().as_millis();
+            timer.iteration();
         }
-        let fin_avg = (avg as f64) / (cnt as f64);
+        let fin_avg = timer.end(block_batch_size, block_concurrency).unwrap();
 
         info!("{};{};{}", block_batch_size, block_concurrency, fin_avg);
-        blocks_timing.data.push(fin_avg);
-        writer.write_record(&[format!("{block_batch_size}"), format!("{block_concurrency}"), format!("{fin_avg}")]).unwrap();
     }
 
     info!("Get timing data for eth_getBlockByNumber requests:");
-    let block_batch_indexes = timing::get_timing_data(&blocks_timing);
+    timing::get_timing_data(timer);
 
-    let block_batch_min = block_num_total - block_batch_indexes.0 + 1;
-    let remainder_0 = if block_num_total % block_batch_min == 0 {0} else {1};
-    let block_concurrency_min = block_num_total / (block_num_total - block_batch_indexes.0 + 1) + remainder_0;
-    info!("Minimum with block_batch_size={} and block_concurrency={}", block_batch_min, block_concurrency_min);
+    let mut timer = timing::Timing {node_end_point: node_end_point.to_string(), ..Default::default()};
 
-    let block_batch_max = block_num_total - block_batch_indexes.1 + 1;
-    let remainder_1 = if block_num_total % block_batch_max == 0 {0} else {1};
-    let block_concurrency_max = block_num_total / (block_num_total - block_batch_indexes.1 + 1) + remainder_1;
-    info!("Maximum with block_batch_size={} and block_concurrency={}", block_batch_max, block_concurrency_max);
-
-    let time_min = &blocks_timing.data[block_num_total - block_batch_min];
-    let time_max = &blocks_timing.data[block_num_total - block_batch_max];
-
-    writer.write_record(&[format!("{block_batch_max}"), format!("{block_concurrency_max}"), format!("{time_max}")]).unwrap();
-    writer.write_record(&[format!("{block_batch_min}"), format!("{block_concurrency_min}"), format!("{time_min}")]).unwrap();
-    writer.flush().unwrap();
+    if let Err(e) = timer.init_write(1) {
+        error!("error while creating csv. check your directory: {}", e);
+        return Ok(());
+    }
 
     info!("eth_getTransactionReceipt rquest in progress.");
     info!("tx_batch;tx_concurrency;time");
 
-    writer = write_csv::create(node_end_point.to_string(), 1).unwrap();
-
     let tx_hashes = &ans_hash[0];
     let num_of_hashes = tx_hashes.len();
 
+    // To do
     // with smaller bound for tx_batch
     // every node throw *429 Too Many Requests*
-    let tx_batch_min = 6;
+    let tx_batch_min = 1;
 
     for tx_batch in (tx_batch_min..num_of_hashes+1).rev() {
         let tx_concurrency = match num_of_hashes % tx_batch {
@@ -135,9 +125,10 @@ pub fn start(node_end_point:String, block_num_total:usize, cnt:u64) -> Result<()
             _ => num_of_hashes / tx_batch + 1
         };
 
-        let mut avg = 0;
+        timer.init();
+
         for _ in 0..cnt {
-            let now = Instant::now();
+            timer.start();
             let mut handles = vec![];
 
             for thread_number in 0..tx_concurrency {
@@ -151,14 +142,14 @@ pub fn start(node_end_point:String, block_num_total:usize, cnt:u64) -> Result<()
                 let ref_node = node_end_point.to_string();
 
                 let handle = thread::spawn(move || {
-                        eth_request::get_transactions_by_hash(Arc::clone(&ref_client), ref_node, &thread_hashes).unwrap_or_else(|_| vec!["0x0".into()])
+                        eth_request::get_transactions_by_hash(Arc::clone(&ref_client), ref_node, &thread_hashes)
                     });
 
                 handles.push(handle);
             }
 
             for handle in handles {
-                let res = handle.join();
+                let res = handle.join().unwrap();
 
                 if let Err(e) = res {
                     error!("error while threading: {:?}", e);
@@ -166,36 +157,26 @@ pub fn start(node_end_point:String, block_num_total:usize, cnt:u64) -> Result<()
                 }
             }
 
-            avg += now.elapsed().as_millis();
+            timer.iteration();
         }
-        let fin_avg = (avg as f64) / (cnt as f64);
+        let fin_avg = timer.end(tx_batch, tx_concurrency).unwrap();
 
         info!("{};{};{}", tx_batch, tx_concurrency, fin_avg);
-        hashes_timing.data.push(fin_avg);
-        writer.write_record(&[format!("{tx_batch}"), format!("{tx_concurrency}"), format!("{fin_avg}")]).unwrap();
     }
 
     info!("Get timing data for eth_getTransactionReceipt requests:");
-    let tx_batch_indexes = timing::get_timing_data(&hashes_timing);
+    timing::get_timing_data(timer);
 
-    let tx_batch_min = num_of_hashes - tx_batch_indexes.0 + 1;
-    let remainder_0 = if num_of_hashes % tx_batch_min == 0 {0} else {1};
-    let tx_concurrency_min = num_of_hashes / tx_batch_min + remainder_0;
-    info!("Minimum with tx_batch={} and tx_concurrency={}", tx_batch_min, tx_concurrency_min);
-
-    let tx_batch_max = num_of_hashes - tx_batch_indexes.1 + 1;
-    let remainder_1 = if num_of_hashes % tx_batch_max == 0 {0} else {1};
-    let tx_concurrency_max = num_of_hashes / tx_batch_max + remainder_1;
-    info!("Maximum with tx_batch={} and tx_concurrency={}", tx_batch_max, tx_concurrency_max);
-
-    let time_min = &hashes_timing.data[num_of_hashes - tx_batch_min];
-    let time_max = &hashes_timing.data[num_of_hashes - tx_batch_max];
-
-    writer.write_record(&[format!("{tx_batch_max}"), format!("{tx_concurrency_max}"), format!("{time_max}")]).unwrap();
-    writer.write_record(&[format!("{tx_batch_min}"), format!("{tx_concurrency_min}"), format!("{time_min}")]).unwrap();
-    writer.flush().unwrap();
-
-    info!("Cumulative time for:\nblock_num_total={}\nnum_of_hashes={}\nnumber_of_runs={}\n{} seconds",
-          block_num_total, num_of_hashes, cnt, cumulative_time.elapsed().as_secs());
+    info!("Cumulative time for: block_num_total={} num_of_hashes={} number_of_runs={}",
+          block_num_total, num_of_hashes, cnt);
+    info!("{} seconds",  cumulative_time.elapsed().as_secs());
     Ok(())
+}
+
+fn get_good_url(node: &String) -> String {
+    if node.starts_with(eth_request::HTTPS) {
+        node.to_string()
+    } else {
+        format!("{}{node}", eth_request::HTTPS)
+    }
 }

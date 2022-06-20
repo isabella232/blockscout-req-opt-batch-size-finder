@@ -12,7 +12,6 @@ fn main() -> Result<(), reqwest::Error> {
     
     env_logger::init();
     
-    // only with "https://"
     let node_end_point = args[1].to_string();
 
     // total number of generated blocks

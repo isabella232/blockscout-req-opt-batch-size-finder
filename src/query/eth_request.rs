@@ -6,6 +6,7 @@ use log::{error};
 
 mod extentions;
 
+pub const HTTPS: &str = "https://";
 
 fn construct_headers() -> HeaderMap {
     let mut headers = HeaderMap::new();

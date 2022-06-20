@@ -2,9 +2,8 @@ extern crate csv;
 
 use csv::Writer;
 
-const HTTPS: &str = "https://";
-
 pub fn create(node_name:String, stage:u64) -> Result<Writer<std::fs::File>, csv::Error> {
+    const HTTPS: &str = "https://";
     let node_https: &str = &node_name[HTTPS.len()..node_name.len()];
     let node_https = node_https.replace('/', "");
 
