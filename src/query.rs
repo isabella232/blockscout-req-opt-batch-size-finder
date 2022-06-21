@@ -1,5 +1,5 @@
 mod eth_request;
-mod timing;
+mod time_data;
 
 use std::sync::Arc;
 use reqwest::blocking::Client;
@@ -10,7 +10,7 @@ use std::cmp;
 use rand::Rng;
 use log::{info, error};
 
-/// entry point
+/// Entry point
 pub fn start(node_end_point:String, block_num_total:usize, cnt:u64) -> Result<(), reqwest::Error> {
     let node_end_point = get_good_url(&node_end_point);
 
@@ -18,6 +18,8 @@ pub fn start(node_end_point:String, block_num_total:usize, cnt:u64) -> Result<()
 
     let client = Arc::new(Client::new());
     let max_block_number = eth_request::get_block_number(Arc::clone(&client), &node_end_point)?;
+    let mut ans_hash = vec![];
+    let mut is_first = true;
 
     info!("Connection succeed");
     info!("max_block_number: {}", max_block_number);
@@ -33,15 +35,12 @@ pub fn start(node_end_point:String, block_num_total:usize, cnt:u64) -> Result<()
     info!("List of generated random blocks:\n{:?}", blocks);
     info!("Number of runs: {}", cnt);
 
-    let mut ans_hash = vec![];
-    let mut is_first = true;
-
     info!("eth_getBlockByNubmer rquest in progress.");
     info!("block_batch_size;block_concurrency;time");
 
     let cumulative_time = Instant::now();
 
-    let mut timer = timing::Timing {node_end_point: node_end_point.to_string(), ..Default::default()};
+    let mut timer = time_data::TimeData {node_end_point: node_end_point.to_string(), ..Default::default()};
 
     if let Err(e) = timer.init_write(0) {
         error!("error while creating csv. check your directory: {}", e);
@@ -99,9 +98,9 @@ pub fn start(node_end_point:String, block_num_total:usize, cnt:u64) -> Result<()
     }
 
     info!("Get timing data for eth_getBlockByNumber requests:");
-    timing::get_timing_data(timer);
+    time_data::get_timing_data(timer);
 
-    let mut timer = timing::Timing {node_end_point: node_end_point.to_string(), ..Default::default()};
+    let mut timer = time_data::TimeData {node_end_point: node_end_point.to_string(), ..Default::default()};
 
     if let Err(e) = timer.init_write(1) {
         error!("error while creating csv. check your directory: {}", e);
@@ -165,7 +164,7 @@ pub fn start(node_end_point:String, block_num_total:usize, cnt:u64) -> Result<()
     }
 
     info!("Get timing data for eth_getTransactionReceipt requests:");
-    timing::get_timing_data(timer);
+    time_data::get_timing_data(timer);
 
     info!("Cumulative time for: block_num_total={} num_of_hashes={} number_of_runs={}",
           block_num_total, num_of_hashes, cnt);

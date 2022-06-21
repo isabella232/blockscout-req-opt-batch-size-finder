@@ -4,14 +4,14 @@ pub mod query;
 
 fn main() -> Result<(), reqwest::Error> {
     let args: Vec<String> = env::args().collect();
-    
+
     if args.len() < 3 {
         eprintln!("Not enought arguments");
         return Ok(());
     }
-    
+
     env_logger::init();
-    
+
     let node_end_point = args[1].to_string();
 
     // total number of generated blocks

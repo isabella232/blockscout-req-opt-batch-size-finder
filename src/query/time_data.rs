@@ -2,23 +2,19 @@ use log::{info};
 use std::time::{Instant};
 mod write_csv;
 
+/// This module is responsible for work with
+/// time data and writing in csv file.
 #[derive(Default)]
-pub struct Timing {
-    /// timing in seconds
+pub struct TimeData {
     pub data: Vec<f64>,
-    // 
     pub now: Option<Instant>,
-    //
     pub avg: u128,
-    //
     pub cnt: u64,
-    //
     pub writer: Option<csv::Writer<std::fs::File>>,
-    //
     pub node_end_point: String,
 }
 
-impl Timing {
+impl TimeData {
     pub fn init_write(&mut self, stage: u64) -> Result<(), csv::Error>{
         self.writer = Some(write_csv::create(self.node_end_point.to_string(), stage)?);
         self.data = Vec::new();
@@ -54,7 +50,7 @@ impl Timing {
     }
 }
 
-pub fn get_timing_data(mut timer: Timing) {
+pub fn get_timing_data(mut timer: TimeData) {
     let mut min = 100000.;
     let mut max = 0.;
     let mut min_index = 0;
