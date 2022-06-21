@@ -51,7 +51,7 @@ For *eth_getBlockByNumber requests* we can see two other minimums, not only (10,
 * With a large number of requests to the node, sometimes the server gives an error [429 Too Many Requests](https://developer.mozilla.org/ru/docs/Web/HTTP/Status/429). In this case, the script works fine, skipping these requests.
 * When the script is running for a long time (with `cnt`>=40) sometimes an error is issued (*TimedOut*). Now I'm trying to catch this error.
 ## Results
-You can check [results](results/README.md) folder.
+You can check [results](results) folder.
 ## Сonclusion
 Input variables are set in the script itself, but it can be easily fixed.
 Among them: `node_end_point`, `block_num_total`, `cnt` (number of runs), `block_range`.
