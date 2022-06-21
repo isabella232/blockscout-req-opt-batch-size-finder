@@ -6,8 +6,8 @@ Pass the arguments in command line:
 RUST_LOG=info cargo run node_end_point block_num_total cnt
 ```
 Where:  
-- `RUST_LOG=info` is for tracking errors in requests (optional)  
-- `node_end_point` is node for test (e. g. *https://rpc.xdaichain.com/*)  
+- `RUST_LOG=info` is to track progress
+- `node_end_point` is node for test (e. g. *https://rpc.xdaichain.com/*, or *rpc.xdaichain.com*)  
 - `block_num_total` is number of generated blocks  
 - `cnt` is number of runs (optional, 10 by default)  
 
@@ -22,7 +22,6 @@ serde_json = "1.0.81"
 env_logger = "0.9.0"
 log = "0.4.17"
 csv = "1.1.6"
-anyhow = "1.0.57"
 ```
 ## Structure of concurrency 
 The picture shows how the block numbers are stored in memory and how concurrency is applied to them:
@@ -52,8 +51,7 @@ For *eth_getBlockByNumber requests* we can see two other minimums, not only (10,
 * With a large number of requests to the node, sometimes the server gives an error [429 Too Many Requests](https://developer.mozilla.org/ru/docs/Web/HTTP/Status/429). In this case, the script works fine, skipping these requests.
 * When the script is running for a long time (with `cnt`>=40) sometimes an error is issued (*TimedOut*). Now I'm trying to catch this error.
 ## Results
-*Big table with images for different `node_end_point` will be here soon...*
-
+You can check [results](results/README.md) folder.
 ## Сonclusion
 Input variables are set in the script itself, but it can be easily fixed.
 Among them: `node_end_point`, `block_num_total`, `cnt` (number of runs), `block_range`.
