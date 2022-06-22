@@ -13,46 +13,39 @@ pub struct Response {
 }
 
 #[allow(dead_code)]
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct Block {
-    author: String,
+    author: Option<String>,
     difficulty: String,
-    extra_data: String,
-    gas_limit: String,
-    gas_used: String,
-    hash: String,
-    logs_bloom: String,
+    extra_data: Option<String>,
+    gas_limit: Option<String>,
+    gas_used: Option<String>,
+    hash: Option<String>,
+    logs_bloom: Option<String>,
     miner: String,
-    number: String,
-    parent_hash: String,
-    receipts_root: String,
+    number: Option<String>,
+    parent_hash: Option<String>,
+    receipts_root: Option<String>,
     seal_fields: Option<Vec<String>>,
-    sha3_uncles: String,
+    sha3_uncles: Option<String>,
     signature: Option<String>,
     size: String,
-    step: Option<StringOrI64>,
     state_root: String,
     timestamp: String,
     total_difficulty: String,
     base_fee_per_gas: Option<String>,
     pub transactions: Vec<String>,
-    transactions_root: String,
+    transactions_root: Option<String>,
     uncles: Vec<String>,
     mix_hash: Option<String>,
     nonce: Option<String>,
+    #[serde(flatten)]
+    rest: serde_json::Value,
 }
 
 #[allow(dead_code)]
-#[derive(Deserialize, Debug)]
-#[serde(untagged)]
-enum StringOrI64 {
-    String(String),
-    I64(i64)
-}
-
-#[allow(dead_code)]
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct Receipt {
     transaction_hash: String,
@@ -70,6 +63,8 @@ pub struct Receipt {
     status: String,
     #[serde(rename = "type")] 
     type_name: Option<String>,
+    #[serde(flatten)]
+    rest: serde_json::Value,
 }
 
 #[allow(dead_code)]
@@ -81,7 +76,7 @@ pub struct Error {
 }
 
 #[allow(dead_code)]
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct Logs {
     removed: bool,
