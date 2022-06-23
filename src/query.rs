@@ -36,7 +36,7 @@ pub fn start(node_end_point:String, block_num_total:usize, cnt:u64) -> Result<()
     info!("Number of runs: {}", cnt);
 
     info!("eth_getBlockByNubmer rquest in progress.");
-    info!("block_batch_size;block_concurrency;time");
+    info!("block_batch_size | block_concurrency | time");
 
     let cumulative_time = Instant::now();
 
@@ -94,7 +94,7 @@ pub fn start(node_end_point:String, block_num_total:usize, cnt:u64) -> Result<()
         }
         let fin_avg = timer.end(block_batch_size, block_concurrency).unwrap();
 
-        info!("{};{};{}", block_batch_size, block_concurrency, fin_avg);
+        info!("{} | {} | {}", block_batch_size, block_concurrency, fin_avg);
     }
 
     info!("Get timing data for eth_getBlockByNumber requests:");
@@ -108,7 +108,7 @@ pub fn start(node_end_point:String, block_num_total:usize, cnt:u64) -> Result<()
     }
 
     info!("eth_getTransactionReceipt rquest in progress.");
-    info!("tx_batch;tx_concurrency;time");
+    info!("tx_batch | tx_concurrency | time");
 
     let tx_hashes = &ans_hash[0];
     let num_of_hashes = tx_hashes.len();
@@ -160,7 +160,7 @@ pub fn start(node_end_point:String, block_num_total:usize, cnt:u64) -> Result<()
         }
         let fin_avg = timer.end(tx_batch, tx_concurrency).unwrap();
 
-        info!("{};{};{}", tx_batch, tx_concurrency, fin_avg);
+        info!("{} | {} | {}", tx_batch, tx_concurrency, fin_avg);
     }
 
     info!("Get timing data for eth_getTransactionReceipt requests:");
