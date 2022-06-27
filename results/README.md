@@ -9,5 +9,3 @@
 ### 4. [Astar Network](astar_network) node (https://astar.api.onfinality.io/public)
 
 ### 5. [Shibuya](shibuya) node (https://evm.shibuya.astar.network)
-
-### 6. [Shiden Network](shiden_network) node (https://evm.shiden.astar.network)
